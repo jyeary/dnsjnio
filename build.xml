@@ -66,12 +66,35 @@
     </target>
 
     <target name="jar" depends="clean, fix.versions, compile">
+    <!-- Create the bnd directory which will be used during the
+osgi-fy process -->
+    <mkdir dir="${build.dir}/bnd"/>
         <copy file="${test.dir}/log4j.properties"
               tofile="${build.dir}/log4j.properties" overwrite="true"/>
-        <jar jarfile="${build.lib.dir}/dnsjnio.jar"
+        <jar jarfile="${build.dir}/bnd/dnsjnio.jar"
              basedir="${build.dir}"
              includes="**/*"
-             excludes="**/${report.dir}/*,**/DemoClient*"/>
+             excludes="**/${report.dir}/*,**/DemoClient*,**/bnd/*"/>
+    <get src="http://www.aqute.biz/repo/biz/aQute/bnd/0.0.401/bnd-0.0.401.jar"
+    dest="${build.dir}/bnd/bnd.jar"/>
+    <taskdef resource="aQute/bnd/ant/taskdef.properties"
+    classpath="${build.dir}/bnd/bnd.jar"/>
+    <!-- Create the .bnd file which holds all needed osgi
+    metadata-->
+    <echo file="${build.dir}/bnd/dnsjnio.bnd" append="false">
+    Bundle-Version: ${version}
+    Bundle-Name: DNSJava extension to support NIO
+    Bundle-SymbolicName: uk.nominet.dnsjnio
+    Export-Package: uk.nominet.dnsjnio;version=${version}
+    Bundle-Vendor: nominet.uk
+    Bundle-RequiredExecutionEnvironment: J2SE-1.4
+    Import-Package: !uk.nominet.dnsjnio,*
+    </echo>
+    <bndwrap definitions="${build.dir}/bnd/"
+    jars="${build.dir}/bnd/dnsjnio.jar"
+    output="${build.lib.dir}/dnsjnio.jar"/>
+    <delete file="${build.dir}/bnd/dnsjnio.bnd"/>
+    <delete file="${build.dir}/bnd/dnsjnio.jar"/>
     </target>
 
     <target name="javadoc">
