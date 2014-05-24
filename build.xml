@@ -135,6 +135,7 @@ osgi-fy process -->
             <batchtest todir="${report.dir}">
                 <fileset dir="${build.dir}">
                     <include name="uk/nominet/**/*Test.class"/>
+                    <exclude name="uk/nominet/**/RemoteServerTest.class"/>
                 </fileset>
             </batchtest>
         </junit>
