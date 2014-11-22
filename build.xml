@@ -69,8 +69,6 @@
     <!-- Create the bnd directory which will be used during the
 osgi-fy process -->
     <mkdir dir="${build.dir}/bnd"/>
-        <copy file="${test.dir}/log4j.properties"
-              tofile="${build.dir}/log4j.properties" overwrite="true"/>
         <jar jarfile="${build.dir}/bnd/dnsjnio.jar"
              basedir="${build.dir}"
              includes="**/*"
