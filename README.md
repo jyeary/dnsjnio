@@ -1,4 +1,4 @@
-dnsjnio version 1.0.5
+dnsjnio version 1.0.4
 =====================
 
 Introduction
