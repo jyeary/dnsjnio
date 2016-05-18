@@ -93,7 +93,7 @@ Demo
 ----
 
 There is a demonstration project that can be downloaded from [dnsjnio-demo](https://github.com/jyeary/dnsjnio-demo)
-This code loads a list of names from demo/to_resolve.txt, and resolves them all in a single thread over a single port.
+The *DemoClient.java* loads a list of names from *to_resolve.txt*, and resolves them all in a single thread over a single port.
 
 
 Contact
