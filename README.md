@@ -92,9 +92,8 @@ before using this library.
 Demo
 ----
 
-Running 'ant demo' will run the demo code, demo/DemoClient.java. This
-code loads a list of names from demo/to_resolve.txt, and resolves them
-all in a single thread over a single port.
+There is a demonstration project that can be downloaded from [dnsjnio-demo](https://github.com/jyeary/dnsjnio-demo)
+This code loads a list of names from demo/to_resolve.txt, and resolves them all in a single thread over a single port.
 
 
 Contact
