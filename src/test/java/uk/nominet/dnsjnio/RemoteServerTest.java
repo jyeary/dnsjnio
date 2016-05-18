@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -13,25 +14,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
-import junit.framework.TestCase;
+import static junit.framework.TestCase.assertTrue;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.xbill.DNS.*;
 
 /**
  *
  * Test that we can connect to a real server...
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
  */
-public class RemoteServerTest extends TestCase {
+public class RemoteServerTest {
+
     public final static String REAL_SERVER = "ns0.validation-test-servers.nominet.org.uk.";
 //    public final static String REAL_QUERY_NAME = "dnsjnio-1-0-4-test1.validation-test-servers.nominet.org.uk.";
     public final static String REAL_QUERY_NAME = "dnsjnio-1-0-1-test1.validation-test-servers.nominet.org.uk.";
 
-    public RemoteServerTest(String arg0) {
-        super(arg0);
+    public RemoteServerTest() {
     }
 
+
+    @Ignore
+    @Test
     public void testRemoteServer() throws Exception {
         Resolver resolver = new NonblockingResolver(REAL_SERVER);
         resolver.setPort(53);
@@ -43,6 +50,8 @@ public class RemoteServerTest extends TestCase {
         checkResponse(response);
     }
 
+    @Ignore
+    @Test
     public void testRemoteServerTcp() throws Exception {
         Resolver resolver = new NonblockingResolver(REAL_SERVER);
         resolver.setTCP(true);
