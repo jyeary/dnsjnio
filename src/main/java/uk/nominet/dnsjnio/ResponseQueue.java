@@ -13,43 +13,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 import java.util.LinkedList;
 
 /**
- * This class implements a simple queue.
- * It blocks threads wishing to remove an object from the queue
- * until an object is available.
+ * This class implements a simple queue. It blocks threads wishing to remove an
+ * object from the queue until an object is available.
  */
-public class ResponseQueue
-{
-	protected LinkedList list = new LinkedList();
-	protected  int waitingThreads = 0;
-                                                                                        
+public class ResponseQueue {
+
+    protected LinkedList list = new LinkedList();
+    protected int waitingThreads = 0;
+
     /**
      * This method is called internally to add a new Response to the queue.
+     *
      * @param response the new Response
      */
-    public synchronized void insert(Response response)
-	{
-		list.addLast(response);
-		notify();
-	}
+    public synchronized void insert(Response response) {
+        list.addLast(response);
+        notify();
+    }
 
-	public synchronized Response getItem()
-	{
-		while ( isEmpty() ) {
-			try	{ waitingThreads++; wait();}
-			catch (InterruptedException e)	{
-				}
-			waitingThreads--;
-		}
-		return (Response)(list.removeFirst());
-	}
+    public synchronized Response getItem() {
+        while (isEmpty()) {
+            try {
+                waitingThreads++;
+                wait();
+            } catch (InterruptedException e) {
+            }
+            waitingThreads--;
+        }
+        return (Response) (list.removeFirst());
+    }
 
-	public boolean isEmpty() {
-		return 	(list.size() - waitingThreads <= 0);
-	}
+    public boolean isEmpty() {
+        return (list.size() - waitingThreads <= 0);
+    }
 }
