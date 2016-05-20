@@ -108,17 +108,17 @@ public class NonblockingResolver implements INonblockingResolver {
                 remoteAddress, localAddress);
     }
 
-	/**
-	 * Creates a SimpleResolver. The host to query is either found by using
-	 * ResolverConfig, or the default host is used.
-	 * 
-	 * @see ResolverConfig
-	 * @exception UnknownHostException
-	 *                Failure occurred while finding the host
-	 */
-	public NonblockingResolver() throws UnknownHostException {
-		this(null);
-	}
+    /**
+     * Creates a SimpleResolver. The host to query is either found by using
+     * ResolverConfig, or the default host is used.
+     *
+     * @see #NonblockingResolver(java.lang.String)
+     * @see ResolverConfig
+     * @exception UnknownHostException Failure occurred while finding the host
+     */
+    public NonblockingResolver() throws UnknownHostException {
+        this(null);
+    }
 
 	InetSocketAddress getRemoteAddress() {
 		return remoteAddress;
