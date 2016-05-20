@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.text.MessageFormat;
 import java.util.List;
 
 /**
@@ -439,8 +440,7 @@ public class NonblockingResolver implements INonblockingResolver {
 		}
 
 		if (Options.check("verbose"))
-			System.err.println("Sending to " + remoteAddress.getAddress()
-					+ ", from " + remoteAddress.getAddress());
+			System.err.println(MessageFormat.format("Sending to {0}, from {1}", remoteAddress.getAddress(), remoteAddress.getAddress()));
 
 		if (inQuery.getHeader().getOpcode() == Opcode.QUERY) {
 			Record question = inQuery.getQuestion();
