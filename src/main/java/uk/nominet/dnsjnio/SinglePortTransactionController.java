@@ -21,10 +21,8 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.xbill.DNS.Flags;
 import org.xbill.DNS.Message;
-import uk.nominet.dnsjnio.NonblockingResolver;
 import org.xbill.DNS.ResolverListener;
 
 /**
@@ -38,13 +36,26 @@ import org.xbill.DNS.ResolverListener;
 public class SinglePortTransactionController extends AbstractTransaction {
     // Keep list of outstanding queries (connection, responseQueue, listener, id)
     // When a packet comes in, get the id, and check all outstanding queries for that id.
-    private Map tcpQueryDataMap = new HashMap();
-    private Map udpQueryDataMap = new HashMap();
+    private Map<Integer, QueryData> tcpQueryDataMap = new HashMap<>();
+    private Map<Integer,QueryData> udpQueryDataMap = new HashMap<>();
     private TCPConnection tcpConnection;
     private UDPConnection udpConnection;
     protected InetSocketAddress remoteAddress;
     protected InetSocketAddress localAddress;
-
+    static int udpOpenedCount = 0;
+    static int udpOpeningCount = 0;
+    
+    public SinglePortTransactionController(InetSocketAddress remoteAddr, InetSocketAddress localAddr) {
+        this.remoteAddress = remoteAddr;
+        this.localAddress = localAddr;
+        synchronized (tcpQueryDataMap) {
+            tcpQueryDataMap = new HashMap();
+        }
+        synchronized (udpQueryDataMap) {
+            udpQueryDataMap = new HashMap();
+        }
+    }
+    
     public boolean headerIdNotInUse(int id) {
         // Search the queryDataList for this ID.
         synchronized(tcpQueryDataMap) {
@@ -60,8 +71,6 @@ public class SinglePortTransactionController extends AbstractTransaction {
         return true;
     }
 
-    static int udpOpenedCount = 0;
-    static int udpOpeningCount = 0;
     /**
      * Instantiate a new Connection, and start the connect process.
      */
@@ -148,16 +157,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
         this.localAddress = addr;
     }
 
-    public SinglePortTransactionController(InetSocketAddress remoteAddr, InetSocketAddress localAddr) {
-        this.remoteAddress = remoteAddr;
-        this.localAddress = localAddr;
-        synchronized (tcpQueryDataMap) {
-            tcpQueryDataMap = new HashMap();
-        }
-        synchronized (udpQueryDataMap) {
-            udpQueryDataMap = new HashMap();
-        }
-    }
+  
 
     /**
      * Send a query. This kicks off the whole process.
