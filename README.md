@@ -26,8 +26,7 @@ This functionality allows DNS queries to be run in a single thread, and
 be sent over a single port (although the default is to a random port
 for each new query).
 
-Please see the docs/notes.txt file for more information on the inner
-workings of dnsjnio.
+The inner workings of dnsjnio are detailed below.
 
 NB: the test code is intended to exercise dnsjnio.  It can take several
 minutes to run.
@@ -40,7 +39,7 @@ resolvers in accordance with RFC1035 section 4.2.1.
 
 
 NonBlockingResolver
-===================
+-------------------
 
 The org.xbill.DNS.INonblockingResolver extends the dnsjava Resolver 
 implementation to define an alternative to the ResolverListener 
@@ -67,7 +66,7 @@ Transaction per query is instantiated by the NonblockingResolver.
 A "DnsTimer" thread is also run to handle the timeouts for DNS requests.
 
 ExtendedNonblockingResolver
-===========================
+---------------------------
 
 The ExtendedNonblockingResolver handles querying multiple resolvers
 for the same name. UDP transport is assumed but TCP may also be used.
@@ -85,9 +84,9 @@ queue.
 Version
 -------
 
-This code will run against dnsjava-2.0.0 -> dnsjava-2.0.8 inclusive.  
-It is necessary to download and install the correct version of dnsjava 
-before using this library.
+This code will run against dnsjava-2.0.0 -> dnsjava-2.0.8 inclusive. It is necessary to download and install the correct version of __dnsjava__ before using this library.
+
+__dnsjnio-1.0.4.jar___ is compiled using JDK 7.
 
 Demo
 ----
@@ -97,7 +96,9 @@ The **DemoClient.java** loads a list of names from **to_resolve.txt**, and resol
 
 
 Contact
-=======
+-------
 
 alex@caerkettontech.com
+
+jyeary@bluelotussoftware.com
 
