@@ -13,47 +13,65 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 import org.xbill.DNS.*;
 
 /**
- * Extended Resolver interface for NonblockingResolver.
- * Able to set TCP and timeout on a per-query basis
+ * Extended Resolver interface for NonblockingResolver. Able to set TCP and
+ * timeout on a per-query basis
  */
-
 public interface INonblockingResolver extends Resolver {
+
     /**
-     * An old-style call, allowing the user to specify the query ID.
+     * {@inheritDoc}
+     *
+     * <p>
+     * An old-style call, allowing the user to specify the query ID.</p>
+     *
      */
     public void sendAsync(Message message, Object id, ResolverListener resolverListener);
+
     /**
      * Asynchronously sends a message to a single nameserver, registering a
-     *  ResponseQueue to buffer responses on success or exception.  Multiple 
-     *  asynchronous lookups can be performed in parallel.
+     * ResponseQueue to buffer responses on success or exception. Multiple
+     * asynchronous lookups can be performed in parallel.
+     *
      * @param query The query to send
      * @param responseQueue the queue for the responses
      * @return An identifier, which is also a data member of the Response
      */
-    public Object
-            sendAsync(final Message query, final ResponseQueue responseQueue);
+    public Object sendAsync(final Message query, final ResponseQueue responseQueue);
+
     /**
      * Asynchronously sends a message to a single nameserver, registering a
-     *  ResponseQueue to buffer responses on success or exception.  Multiple 
-     *  asynchronous lookups can be performed in parallel.
+     * ResponseQueue to buffer responses on success or exception. Multiple
+     * asynchronous lookups can be performed in parallel.
+     *
      * @param query The query to send
      * @param id An identifier, which is also a data member of the Response
      * @param responseQueue the queue for the responses
      */
-    public void
-            sendAsync(final Message query, Object id, final ResponseQueue responseQueue);
-    public void
-            sendAsync(final Message query, Object id, int timeout, boolean useTCP, final ResponseQueue responseQueue);
-    
+    public void sendAsync(final Message query, Object id, final ResponseQueue responseQueue);
+
     /**
-     * Set single port mode on or off for TCP
-     * THIS ONLY WORKS FOR TCP-BASED QUERIES - UDP QUERIES WILL ALWAYS USE A RANDOM PORT
+     * Asynchronously sends a message to a single nameserver, registering a
+     * ResponseQueue to buffer responses on success or exception. Multiple
+     * asynchronous lookups can be performed in parallel.
+     *
+     * @param query The query to send
+     * @param id An identifier, which is also a data member of the Response
+     * @param timeout The timeout value to set in seconds.
+     * @param useTCP boolean value to determine if the query should use TCP
+     * instead of UDP.
+     * @param responseQueue the queue for the responses
+     */
+    public void sendAsync(final Message query, Object id, int timeout, boolean useTCP, final ResponseQueue responseQueue);
+
+    /**
+     * Set single port mode on or off for TCP THIS ONLY WORKS FOR TCP-BASED
+     * QUERIES - UDP QUERIES WILL ALWAYS USE A RANDOM PORT
+     *
      * @param useSameTcpPort should same port be used for all the queries?
      */
     public void setSingleTcpPort(boolean useSameTcpPort);
