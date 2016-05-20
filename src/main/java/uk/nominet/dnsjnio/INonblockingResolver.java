@@ -24,11 +24,11 @@ import org.xbill.DNS.*;
 public interface INonblockingResolver extends Resolver {
 
     /**
-     * {@inheritDoc}
+     * An old-style call, allowing the user to specify the query ID.
      *
-     * <p>
-     * An old-style call, allowing the user to specify the query ID.</p>
-     *
+     * @param message The query to send.
+     * @param id An identifier, which is also a data member of the Response
+     * @param resolverListener The object containing the callbacks
      */
     public void sendAsync(Message message, Object id, ResolverListener resolverListener);
 
