@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 import java.io.IOException;
@@ -25,16 +24,15 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * This class controls the I/O using the java.nio package.
- * A select thread is created, which runs the select loop
- * forever.
- * A queue of invocations is kept for the thread, and an
- * outgoing queue is also instantiated.
- * One DnsController services all resolvers
+ * This class controls the I/O using the java.nio package. A select thread is
+ * created, which runs the select loop forever. A queue of invocations is kept
+ * for the thread, and an outgoing queue is also instantiated. One DnsController
+ * services all resolvers
  */
 public class DnsController {
-    private static DnsController INSTANCE = new DnsController();
-    private static List invocations;
+
+    private static final DnsController INSTANCE = new DnsController();
+    private static final List<Runnable> INVOCATIONS = new LinkedList<>();
     private static Selector selector;
     private static Thread selectThread;
 
@@ -51,22 +49,22 @@ public class DnsController {
     }
 
     private static void initialise() {
-        invocations = new LinkedList();
         try {
             selector = Selector.open();
-        } catch(IOException ie) {
+        } catch (IOException ie) {
             // log error?
             System.out.println("Error - can't open selector\r\n" + ie);
         }
         selectThread = new Thread("DnsSelect") {
+            @Override
             public void run() {
-            	while (true) {
-	            	try {
-	            		selectLoop();
-	            	} catch (Throwable t) {
+                while (true) {
+                    try {
+                        selectLoop();
+                    } catch (Throwable t) {
                         System.out.println("Caught exception in DnsSelect thread\r\n" + t);
-	            	}
-            	}
+                    }
+                }
             }
         };
         selectThread.setDaemon(true);
@@ -78,40 +76,40 @@ public class DnsController {
         while (true) {
             do {
                 task = null;
-                synchronized (invocations) {
-                    if (invocations.size() > 0) {
-                        task = (Runnable)(invocations.get(0));
-                        invocations.remove(0);
+                synchronized (INVOCATIONS) {
+                    if (INVOCATIONS.size() > 0) {
+                        task = INVOCATIONS.get(0);
+                        INVOCATIONS.remove(0);
                         task.run();
                     }
                 }
-            } while(task != null);
+            } while (task != null);
 
             try {
-            	// We Could get rid of timer thread by calling selector.select(timeout) here.
-            	// We'd need to keep a list of all the expected absolute timeouts and wait for the next one
-            	// That could get fairly busy if there's a lot of outstanding requests,
-            	// and the select loop is not the right place to waste time.
-            	// I just don't know whether a separate polling thread (Timer) is the right answer!
+                // We Could get rid of timer thread by calling selector.select(timeout) here.
+                // We'd need to keep a list of all the expected absolute timeouts and wait for the next one
+                // That could get fairly busy if there's a lot of outstanding requests,
+                // and the select loop is not the right place to waste time.
+                // I just don't know whether a separate polling thread (Timer) is the right answer!
                 selector.select();
-            } catch(Exception e) {
+            } catch (Exception e) {
                 System.out.println("Exception caught in select loop\r\n" + e);
             }
 
             // process any selected keys
             Set selectedKeys = selector.selectedKeys();
             Iterator it = selectedKeys.iterator();
-            while(it.hasNext()) {
-                SelectionKey key = (SelectionKey)(it.next());
-                Connection conn = (Connection)key.attachment();
+            while (it.hasNext()) {
+                SelectionKey key = (SelectionKey) (it.next());
+                Connection conn = (Connection) key.attachment();
                 int kro = key.readyOps();
-                if((kro & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
+                if ((kro & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
                     conn.doRead();
                 }
-                if((kro & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) {
+                if ((kro & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) {
                     conn.doWrite();
                 }
-                if((kro & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT) {
+                if ((kro & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT) {
                     conn.doConnect();
                 }
                 it.remove();
@@ -120,8 +118,8 @@ public class DnsController {
     }
 
     public static void invoke(Runnable task) {
-        synchronized (invocations) {
-            invocations.add(invocations.size(), task);
+        synchronized (INVOCATIONS) {
+            INVOCATIONS.add(INVOCATIONS.size(), task);
         }
         selector.wakeup();
     }
