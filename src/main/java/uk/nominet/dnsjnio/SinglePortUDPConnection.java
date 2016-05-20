@@ -18,7 +18,8 @@ package uk.nominet.dnsjnio;
 import java.nio.channels.DatagramChannel;
 
 /**
- * Single port UDP connection. This class reuses the same port.
+ * Single port UDP connection. The connection is set to be non-blocking, and
+ * {@code SO_REUSEADDR} is set to reuse the port.
  */
 public class SinglePortUDPConnection extends UDPConnection {
 
