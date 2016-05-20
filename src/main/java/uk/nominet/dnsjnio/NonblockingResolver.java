@@ -71,33 +71,42 @@ public class NonblockingResolver implements INonblockingResolver {
 
 	private boolean useSinglePort = false;
 
-	private InetSocketAddress localAddress = new InetSocketAddress(0); // use
-																		// random
-																		// port
-																		// by
-																		// default
+    /**
+     * Use a random port by default.
+     */
+    private InetSocketAddress localAddress = new InetSocketAddress(0);
 
-	/**
-	 * Creates a SimpleResolver that will query the specified host
-	 * 
-	 * @exception UnknownHostException
-	 *                Failure occurred while finding the host
-	 */
-	public NonblockingResolver(String hostname) throws UnknownHostException {
-		if (hostname == null) {
-			hostname = ResolverConfig.getCurrentConfig().server();
-			if (hostname == null)
-				hostname = defaultResolver;
-		}
-		InetAddress addr;
-		if (hostname.equals("0"))
-			addr = InetAddress.getLocalHost();
-		else
-			addr = InetAddress.getByName(hostname);
-		remoteAddress = new InetSocketAddress(addr, DEFAULT_PORT);
-		transactionController = new SinglePortTransactionController(
-				remoteAddress, localAddress);
-	}
+    /**
+     * Creates a SimpleResolver that will query the specified host
+     *
+     * @param hostname The hostname of the DNS server to use. If the value is
+     * {@code null}, the {@link ResolverConfig#currentConfig#server()} is
+     * checked. If the value is found, it is used. If the value is not found,
+     * <strong>localhost</strong> is used. It the value is "0", then the
+     * <strong>localhost</strong> is used. Otherwise it will attempt to resolve
+     * the hostname address and use it for the remote server address. The
+     * hostname can either be a machine name, such as "java.sun.com", or a
+     * textual representation of its IP address. If a literal IP address is
+     * supplied, only the validity of the address format is checked.
+     * @exception UnknownHostException Failure occurred while finding the host
+     */
+    public NonblockingResolver(String hostname) throws UnknownHostException {
+        if (hostname == null) {
+            hostname = ResolverConfig.getCurrentConfig().server();
+            if (hostname == null) {
+                hostname = defaultResolver;
+            }
+        }
+        InetAddress addr;
+        if (hostname.equals("0")) {
+            addr = InetAddress.getLocalHost();
+        } else {
+            addr = InetAddress.getByName(hostname);
+        }
+        remoteAddress = new InetSocketAddress(addr, DEFAULT_PORT);
+        transactionController = new SinglePortTransactionController(
+                remoteAddress, localAddress);
+    }
 
 	/**
 	 * Creates a SimpleResolver. The host to query is either found by using
