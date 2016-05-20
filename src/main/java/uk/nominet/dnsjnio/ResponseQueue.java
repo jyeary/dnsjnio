@@ -18,24 +18,31 @@ package uk.nominet.dnsjnio;
 import java.util.LinkedList;
 
 /**
- * This class implements a simple queue. It blocks threads wishing to remove an
- * object from the queue until an object is available.
+ * This class implements a simple FIFO queue. It blocks threads wishing to
+ * remove an object from the queue until an object is available.
  */
 public class ResponseQueue {
 
-    protected LinkedList list = new LinkedList();
+    protected LinkedList<Response> list = new LinkedList<>();
     protected int waitingThreads = 0;
 
     /**
-     * This method is called internally to add a new Response to the queue.
+     * This method is called to add a new {@link Response} to the queue. The
+     * {@link Response} is added to the bottom of the queue.
      *
-     * @param response the new Response
+     * @param response the new {@code Response} to add to queue.
      */
     public synchronized void insert(Response response) {
         list.addLast(response);
         notify();
     }
 
+    /**
+     * This method blocks while the queue is empty. It will return the first
+     * item in the queue when available.
+     *
+     * @return A {@code Response} from the top of the queue.
+     */
     public synchronized Response getItem() {
         while (isEmpty()) {
             try {
@@ -45,9 +52,17 @@ public class ResponseQueue {
             }
             waitingThreads--;
         }
-        return (Response) (list.removeFirst());
+        return list.removeFirst();
     }
 
+    /**
+     * Determines if the queue is empty based on the number of elements in the
+     * queue - the number of waiting {@code Thread}s.
+     *
+     * @return {@code false} if the (queue size - the number of waiting threads)
+     * is greater than zero.{@code true} if the value is value is less than or
+     * equal to zero.
+     */
     public boolean isEmpty() {
         return (list.size() - waitingThreads <= 0);
     }
