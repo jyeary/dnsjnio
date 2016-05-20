@@ -476,24 +476,24 @@ public class NonblockingResolver implements INonblockingResolver {
 
 		// Use SinglePortTransactionController if possible, otherwise get new
 		// Transaction.
+                int qid = query.getHeader().getID();
 		if (useSinglePort && tcp
-				&& transactionController.headerIdNotInUse(query.getHeader()
-						.getID())) {
-			QueryData qData = new QueryData();
-			qData.setTcp(tcp);
-			qData.setIgnoreTruncation(ignoreTruncation);
-			qData.setTsig(tsig);
-			qData.setQuery(query);
-			if (!tcp) {
-				qData.setUdpSize(udpSize);
-			}
-			if (useResponseQueue) {
-				transactionController.sendQuery(qData, id, responseQueue,
-						endTime);
-			} else {
-				// Start up the Transaction with a ResolverListener
-				transactionController.sendQuery(qData, id, listener, endTime);
-			}
+				  && transactionController.headerIdNotInUse(qid)) {
+                    QueryData qData = new QueryData();
+                    qData.setTcp(tcp);
+                    qData.setIgnoreTruncation(ignoreTruncation);
+                    qData.setTsig(tsig);
+                    qData.setQuery(query);
+                    if (!tcp) {
+                        qData.setUdpSize(udpSize);
+                    }
+                    if (useResponseQueue) {
+                        transactionController.sendQuery(qData, id, responseQueue,
+                                endTime);
+                    } else {
+                        // Start up the Transaction with a ResolverListener
+                        transactionController.sendQuery(qData, id, listener, endTime);
+                    }
 		} else {
 			// Pick a random port here - don't leave it to the OS!
 			InetSocketAddress localAddr = getNewInetSocketAddressWithRandomPort(localAddress.getAddress());
