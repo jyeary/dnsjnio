@@ -13,20 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
-
-import org.xbill.DNS.*;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
+import org.xbill.DNS.*;
 
 /**
- * This class needs to listen for requests from the test code.
- * It should send back replies for "example...", and fail any others.
+ * This class needs to listen for requests from the test code. It should send
+ * back replies for "example...", and fail any others.
  */
 public class TestServer extends Thread {
+
     final static int PORT = 34916;
     ServerSocket tcpSocket;
     DatagramSocket udpSocket;
@@ -42,44 +41,43 @@ public class TestServer extends Thread {
     public static void main(String[] args) {
         startServer();
     }
-    
+
     public static TestServer startServer() {
-    	stopServer();
-    	if (!serverRunning) {
-    		serverRunning = true;
-    	server = startServer(PORT, NUM_UDP_THREADS, NUM_TCP_THREADS);
-    	}
-    	return server;
+        stopServer();
+        if (!serverRunning) {
+            serverRunning = true;
+            server = startServer(PORT, NUM_UDP_THREADS, NUM_TCP_THREADS);
+        }
+        return server;
     }
-    
+
     public static void stopServer() {
-    	if (serverRunning) {
-    		server.stopRunning();
-    		serverRunning = false;
-    	}
+        if (serverRunning) {
+            server.stopRunning();
+            serverRunning = false;
+        }
     }
 
     public static TestServer startServer(int port, int numUdpThreads, int numTcpThreads) {
         // Fire up a thread for tcp, and a load of threads for udp.
         // They'll read the sockets, and the TCP thread will fire up new threads to answer queries.
 //        if (tcpServers[0] == null) {
-    	TestServer server = new TestServer();
-    	server.kickoff(port, numUdpThreads, numTcpThreads);
-    	return server;
+        TestServer server = new TestServer();
+        server.kickoff(port, numUdpThreads, numTcpThreads);
+        return server;
 //        }
 //        }
     }
-    
+
     private void kickoff(int port, int numUdpThreads, int numTcpThreads) {
-    	if (!serverStarted) {
-    		serverStarted = true;
-        	tcpServers = new TcpResponder[numTcpThreads];
+        if (!serverStarted) {
+            serverStarted = true;
+            tcpServers = new TcpResponder[numTcpThreads];
             try {
                 tcpSocket = new ServerSocket(port);
-            }
-            catch (IOException e) {
-                printMsg("Cannot create server socket " +
-                        "on port:  " + port + ".  Exiting...");
+            } catch (IOException e) {
+                printMsg("Cannot create server socket "
+                        + "on port:  " + port + ".  Exiting...");
                 System.exit(0);
             }
             for (int i = 0; i < numTcpThreads; i++) {
@@ -88,49 +86,48 @@ public class TestServer extends Thread {
             }
 //        }
 //        if (udpServers[0] == null) {
-        	udpServers = new UdpResponder[numUdpThreads];
+            udpServers = new UdpResponder[numUdpThreads];
             try {
                 udpSocket = new DatagramSocket(port);
 //                udpSocket.setSoTimeout(20);
-            }
-            catch (SocketException e) {
-                e.printStackTrace();
+            } catch (SocketException e) {
+                e.printStackTrace(System.err);
                 System.exit(0);
             }
             for (int i = 0; i < numUdpThreads; i++) {
                 udpServers[i] = new UdpResponder(udpSocket, this);
                 udpServers[i].start();
             }
-    	}    	
-    }
-    
-    public void stopRunning() {
-        if (serverStarted) {
-    	for (int i = 0; i < udpServers.length; i++) {
-    		udpServers[i].stopRunning();
-    	}
-    	for (int i = 0; i < tcpServers.length; i++) {
-    		tcpServers[i].stopRunning();
-    	}
-        serverStarted = false;
-        udpSocket.close();
-        try {
-        tcpSocket.close();
-        } catch (IOException e) {
-            System.out.println("Error closing TCP socket " + e);
-        }
         }
     }
 
-    public void printMsg(String msg) {
+    public void stopRunning() {
+        if (serverStarted) {
+            for (UdpResponder udpServer : udpServers) {
+                udpServer.stopRunning();
+            }
+            for (TcpResponder tcpServer : tcpServers) {
+                tcpServer.stopRunning();
+            }
+            serverStarted = false;
+            udpSocket.close();
+            try {
+                tcpSocket.close();
+            } catch (IOException e) {
+                System.out.println("Error closing TCP socket " + e);
+            }
+        }
+    }
+
+    public void printMsg(final String msg) {
         System.out.println(msg);
     }
 
     public Message formResponse(Message query, int port) throws UnknownHostException, TextParseException {
         try {
             sleep(random.nextInt(500));
+        } catch (Exception e) {
         }
-        catch (Exception e) {}
         Message response = new Message();
         response.getHeader().setID(query.getHeader().getID());
         if (query.getQuestion().getName().toString().startsWith("example")) {
@@ -149,8 +146,7 @@ public class TestServer extends Thread {
         } else if (query.getQuestion().getName().toString().startsWith("timeout")) {
             try {
                 sleep(2100);
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
             }
             return null;
         } else {
