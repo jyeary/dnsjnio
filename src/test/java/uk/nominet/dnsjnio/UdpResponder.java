@@ -15,21 +15,23 @@ limitations under the License.
  */
 package uk.nominet.dnsjnio;
 
-import org.xbill.DNS.Message;
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.Random;
+import org.xbill.DNS.Message;
 
 public class UdpResponder extends Thread {
 
     final DatagramSocket socket;
 //    private static int idCount = 0;
 //    private int id = 0;
-    private Random random = new Random();
+    private final Random random = new SecureRandom();
     private TestServer server;
     private boolean keepRunning = true;
 
@@ -44,6 +46,7 @@ public class UdpResponder extends Thread {
         interrupt();
     }
 
+    @Override
     public void run() {
         while (keepRunning) {
             processClientRequest();
@@ -92,8 +95,8 @@ public class UdpResponder extends Thread {
 
                     response = server.formResponse(query, client_port);
                 } catch (IOException e) {
-                    server.printMsg("Can't get Message from input!" + bytes);
-                    e.printStackTrace();
+                    server.printMsg(MessageFormat.format("Can't get Message from input!{0}", Arrays.toString(bytes)));
+                    e.printStackTrace(System.err);
                 }
                 if (response != null) {
 
