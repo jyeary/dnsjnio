@@ -13,40 +13,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
+import static junit.framework.TestCase.fail;
+import org.junit.Test;
 import org.xbill.DNS.*;
 
-import junit.framework.TestCase;
+public class CompressTest {
 
-public class CompressTest extends TestCase {
-	public void testCompression() throws Exception {
-       NonblockingResolver res = new NonblockingResolver();
-       Name name = Name.fromString("000.COM", Name.root);
-       Record question = Record.newRecord(name, Type.CNAME, DClass.ANY);
-       Message query = Message.newQuery(question);
-
-       try {
-         res.send(query);
-       }
-       catch (Exception e) {
-    	   fail("UDP test couldn't handle un-compressed records");
-       }
-	}
-	
-	public void testCompressionTCP() throws Exception {
-		NonblockingResolver res = new NonblockingResolver();
-		res.setTCP(true);
+    @Test
+    public void testUDPCompression() throws Exception {
+        System.out.println("Test UDP Compression");
+        NonblockingResolver resolver = new NonblockingResolver();
         Name name = Name.fromString("000.COM", Name.root);
         Record question = Record.newRecord(name, Type.CNAME, DClass.ANY);
         Message query = Message.newQuery(question);
 
         try {
-            res.send(query);
-            } 
-            catch (Exception e) {
-       	     fail("TCP test couldn't handle un-compressed records");
-            }
-	}	
+            resolver.send(query);
+        } catch (Exception e) {
+            fail("UDP test couldn't handle un-compressed records");
+        }
+    }
+
+    @Test
+    public void testTCPCompression() throws Exception {
+        System.out.println("Test TCP Compression");
+        NonblockingResolver resolver = new NonblockingResolver();
+        resolver.setTCP(true);
+        Name name = Name.fromString("000.COM", Name.root);
+        Record question = Record.newRecord(name, Type.CNAME, DClass.ANY);
+        Message query = Message.newQuery(question);
+
+        try {
+            resolver.send(query);
+        } catch (Exception e) {
+            fail("TCP test couldn't handle un-compressed records");
+        }
+    }
 }
