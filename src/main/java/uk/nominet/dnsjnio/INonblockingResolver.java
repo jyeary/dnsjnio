@@ -69,8 +69,7 @@ public interface INonblockingResolver extends Resolver {
     public void sendAsync(final Message query, Object id, int timeout, boolean useTCP, final ResponseQueue responseQueue);
 
     /**
-     * Set single port mode on or off for TCP THIS ONLY WORKS FOR TCP-BASED
-     * QUERIES - UDP QUERIES WILL ALWAYS USE A RANDOM PORT
+     * Set single port mode on or off for TCP. This is is TCP-based queries.
      *
      * @param useSameTcpPort should same port be used for all the queries?
      */
