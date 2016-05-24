@@ -211,6 +211,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Called to say that we are readyToSend. We can now send the data.
+     *
      * @param connection
      */
     @Override
@@ -309,7 +310,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
 //            System.out.println("Returning id = " + qData.getId() + ", header id " + qData.getQuery().getHeader().getID());
             returnResponse(message, qData);
         } catch (IOException e) {
-            return; // Ignore it. Query will time out eventually.
+            // Ignore it. Query will time out eventually.
         }
     }
 
@@ -329,6 +330,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Throw an Exception to the listener
+     *
      * @param e
      * @param qData
      */
