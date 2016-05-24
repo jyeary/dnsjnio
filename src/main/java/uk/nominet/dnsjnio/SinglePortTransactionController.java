@@ -211,7 +211,9 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Called to say that we are readyToSend. We can now send the data.
+     * @param connection
      */
+    @Override
     public void readyToSend(Connection connection) {
         QueryData qData = null;
         do {
@@ -250,6 +252,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
      *
      * @param connection
      */
+    @Override
     public void closed(Connection connection) {
         // See if any queries are still outstanding for that Connection.
         Map queryMap = getQueryDataMap(connection);
@@ -271,7 +274,9 @@ public class SinglePortTransactionController extends AbstractTransaction {
      * run to return the whole response.
      *
      * @param data
+     * @param connection
      */
+    @Override
     public void dataAvailable(byte[] data, Connection connection) {
         // Now get the data, and send it back to the listener.
         // Match up the returned qData with the QueryDataList
@@ -324,7 +329,10 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Throw an Exception to the listener
+     * @param e
+     * @param qData
      */
+    @Override
     protected void returnException(Exception e, QueryData qData) {
         if (!qData.isAnswered()) {
             qData.setAnswered(true);
