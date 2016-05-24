@@ -109,7 +109,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
             }
         } else {
             synchronized (udpQueryDataMap) {
-                udpQueryDataMap.put(new Integer(qData.getQuery().getHeader().getID()), qData);
+                udpQueryDataMap.put(qData.getQuery().getHeader().getID(), qData);
             }
             if (udpConnection != null && !(udpConnection.getState() == Connection.State.CLOSED)) {
                 // Use this connection
@@ -191,15 +191,18 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Disconnect.
+     * @param qData
+     * @return {@literal true} if the connection was disconnected, and {@literal false} otherwise.
      */
+    @Override
     protected boolean disconnect(QueryData qData) {
         // We only want to disconnect if there are no outstanding queries on that connection
         // Remove this query from the list
         Map queryMap = getQueryDataMap(qData.getConnection());
         boolean disconnect = false;
         synchronized (queryMap) {
-            queryMap.remove(new Integer(qData.getQuery().getHeader().getID()));
-            if (queryMap.size() == 0) {
+            queryMap.remove(qData.getQuery().getHeader().getID());
+            if (queryMap.isEmpty()) {
                 disconnect = true;
             }
         }
@@ -259,7 +262,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
         Map queryMap = getQueryDataMap(connection);
         boolean reconnect = false;
         synchronized (queryMap) {
-            if (queryMap.size() != 0) {
+            if (!queryMap.isEmpty()) {
                 reconnect = true;
             }
         }
@@ -289,7 +292,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
             // Search the list for this connection
             Map queryMap = getQueryDataMap(connection);
             synchronized (queryMap) {
-                qData = (QueryData) (queryMap.get(new Integer(message.getHeader().getID())));
+                qData = (QueryData) (queryMap.get(message.getHeader().getID()));
             }
             if (qData == null) {
                 return; // @todo !!!
@@ -353,7 +356,7 @@ public class SinglePortTransactionController extends AbstractTransaction {
         qData.setResponded(true);
         Map queryMap = getQueryDataMap(qData.getConnection());
         synchronized (queryMap) {
-            queryMap.remove(new Integer(qData.getQuery().getHeader().getID()));
+            queryMap.remove(qData.getQuery().getHeader().getID());
         }
     }
 
