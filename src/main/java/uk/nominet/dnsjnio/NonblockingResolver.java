@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -18,26 +19,29 @@ package uk.nominet.dnsjnio;
 
 import org.xbill.DNS.*;
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Random;
 
 /**
  * A nonblocking implementation of Resolver. Multiple concurrent sendAsync
  * queries can be run without increasing the number of threads.
- * 
- * 
+ *
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
  */
 public class NonblockingResolver implements INonblockingResolver {
 
 	/** The default port to send queries to */
 	public static final int DEFAULT_PORT = 53;
 
-	private InetSocketAddress remoteAddress = new InetSocketAddress(
-			DEFAULT_PORT);
+	private InetSocketAddress remoteAddress = new InetSocketAddress(DEFAULT_PORT);
 
 	private boolean useTCP = false, ignoreTruncation;
 
@@ -64,13 +68,10 @@ public class NonblockingResolver implements INonblockingResolver {
 	// to match up replies to outstanding queries.
 	//
 	private static short uniqueID = 0;
-	
-	private static java.util.Random random = new java.util.Random();
-
-
+	private static Random random = new SecureRandom();
 	private SinglePortTransactionController transactionController;
-
-	private boolean useSinglePort = false;
+	private boolean useSingleTCPPort = false;
+        private boolean useSingleUDPPort = false;
 
     /**
      * Use a random port by default.
@@ -81,7 +82,7 @@ public class NonblockingResolver implements INonblockingResolver {
      * Creates a SimpleResolver that will query the specified host
      *
      * @param hostname The hostname of the DNS server to use. If the value is
-     * {@code null}, the {@link ResolverConfig#currentConfig#server()} is
+     * {@code null}, the {@link ResolverConfig#currentConfig} is
      * checked. If the value is found, it is used. If the value is not found,
      * <strong>localhost</strong> is used. It the value is "0", then the
      * <strong>localhost</strong> is used. Otherwise it will attempt to resolve
@@ -125,10 +126,13 @@ public class NonblockingResolver implements INonblockingResolver {
 		return remoteAddress;
 	}
 
-	/** Sets the default host (initially localhost) to query */
-	public static void setDefaultResolver(String hostname) {
-		defaultResolver = hostname;
-	}
+        /**
+         * Sets the default host (initially localhost) to query
+         * @param hostname The name of the host which will serve as the default for name resolution.
+         */
+        public static void setDefaultResolver(final String hostname) {
+            defaultResolver = hostname;
+        }
 
 	/**
 	 * Sets the address of the server to communicate with.
@@ -194,6 +198,7 @@ public class NonblockingResolver implements INonblockingResolver {
 	 * @param port
 	 *            the server port
 	 */
+        @Override
 	public void setPort(int port) {
 		setRemotePort(port);
 	}
@@ -207,6 +212,7 @@ public class NonblockingResolver implements INonblockingResolver {
 		return localAddress;
 	}
 
+        @Override
 	public void setTCP(boolean flag) {
 		this.useTCP = flag;
 	}
@@ -215,31 +221,70 @@ public class NonblockingResolver implements INonblockingResolver {
 		return useTCP;
 	}
 
+        @Override
 	public void setIgnoreTruncation(boolean flag) {
 		this.ignoreTruncation = flag;
 	}
 
-	/**
-	 * Set single port mode on or off
-     * THIS ONLY WORKS FOR TCP-BASED QUERIES - UDP QUERIES WILL ALWAYS USE A RANDOM PORT
-	 * 
-	 * @param useSamePort
-	 *            should same port be used for all the queries?
-	 */
-	public void setSingleTcpPort(boolean useSamePort) {
-		this.useSinglePort = useSamePort;
-	}
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <strong>Note:</strong> Enabling this feature could open DNS cache
+     * poisoning vulnerability.
+     * </p>
+     *
+     * @see #setUseSingleUDPPort(boolean)
+     */
+    @Override
+    public void setSingleTcpPort(boolean useSamePort) {
+        this.useSingleTCPPort = useSamePort;
+    }
 
-	/**
-	 * In single port mode?
-     * THIS ONLY WORKS FOR TCP-BASED QUERIES - UDP QUERIES WILL ALWAYS USE A RANDOM PORT
-	 * 
-	 * @return true if a single port should be used for all queries
-	 */
-	public boolean isSingleTcpPort() {
-		return useSinglePort;
-	}
+    /**
+     * In single port mode?
+     *
+     * @return {@literal true} if a single port should be used for all queries.
+     * @see #setSingleTcpPort(boolean) 
+     * @see #setUseSingleUDPPort(boolean) 
+     */
+    public boolean isSingleTcpPort() {
+        return useSingleTCPPort;
+    }
 
+    /**
+     * Determine if all UDP queries should use a single port.
+     *
+     * @return {@literal true} if a single port should be used for all queries.
+     */
+    public boolean isUseSingleUDPPort() {
+        return useSingleUDPPort;
+    }
+
+    /**
+     * <p>
+     * Set the server to use a single port for sending UDP queries. The default
+     * value is {@literal false}.</p>
+     * <p>
+     * <strong>Note:</strong> if the size of the {@link DatagramPacket} is too
+     * large, it will be sent using TCP.</p>
+     * <p>
+     * <strong>Note:</strong> setting this value to {@literal true} may make
+     * your application subject to Kaminsky attacks.</p>
+     * <ul>
+     * <li><a href="http://www.kb.cert.org/vuls/id/800113">Multiple DNS
+     * implementations vulnerable to cache poisoning</a></li>
+     * <li><a href="http://www.unixwiz.net/techtips/iguide-kaminsky-dns-vuln.html">An
+     * Illustrated Guide to the Kaminsky DNS Vulnerability</a></li>
+     * <li><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2008-1447">CVE-2008-1447</a></li>
+     * </ul>
+     *
+     * @param useSingleUDPPort {@literal true} to enable and {@literal false} to
+     * disable.
+     */
+    public void setUseSingleUDPPort(boolean useSingleUDPPort) {
+        this.useSingleUDPPort = useSingleUDPPort;
+    }
+    
 	/**
 	 * Sets the local port to bind to when sending messages. A random port will
 	 * be used if useSinglePort is false.
@@ -253,6 +298,7 @@ public class NonblockingResolver implements INonblockingResolver {
 		transactionController.setLocalAddress(localAddress);
 	}	
 
+        @Override
 	public void setEDNS(int level, int payloadSize, int flags, List options) {
 		if (level != 0 && level != -1)
 			throw new IllegalArgumentException("invalid EDNS level - "
@@ -262,6 +308,7 @@ public class NonblockingResolver implements INonblockingResolver {
 		queryOPT = new OPTRecord(payloadSize, 0, level, flags, options);
 	}
 
+        @Override
 	public void setEDNS(int level) {
 		setEDNS(level, 0, 0, null);
 	}
@@ -272,6 +319,7 @@ public class NonblockingResolver implements INonblockingResolver {
 		query.addRecord(queryOPT, Section.ADDITIONAL);
 	}
 
+        @Override
 	public void setTSIGKey(TSIG key) {
 		tsig = key;
 	}
@@ -288,10 +336,12 @@ public class NonblockingResolver implements INonblockingResolver {
 		return tsig;
 	}
 
+        @Override
 	public void setTimeout(int secs) {
 		setTimeout(secs, 0);
 	}
 
+        @Override
 	public void setTimeout(int secs, int millisecs) {
 		timeoutValue = (secs * 1000) + millisecs;
 	}
@@ -328,6 +378,7 @@ public class NonblockingResolver implements INonblockingResolver {
 	 * @throws IOException
 	 *             An error occurred while sending or receiving.
 	 */
+        @Override
 	public Message send(Message query) throws IOException {
 
 		ResponseQueue queue = new ResponseQueue();
@@ -359,6 +410,7 @@ public class NonblockingResolver implements INonblockingResolver {
 	 *            object to call back
 	 * @return id of the query
 	 */
+        @Override
 	public Object sendAsync(Message message, ResolverListener resolverListener) {
 		// If this method is called, then the Transaction should fire up a new
 		// thread, and use it to
@@ -382,6 +434,7 @@ public class NonblockingResolver implements INonblockingResolver {
 	 * @param resolverListener
 	 *            object to call back
 	 */
+        @Override
 	public void sendAsync(Message message, Object id,
 			ResolverListener resolverListener) {
 		sendAsync(message, id, timeoutValue, useTCP, null, false,
@@ -399,11 +452,11 @@ public class NonblockingResolver implements INonblockingResolver {
 	 *            the queue for the responses
 	 * @return An identifier, which is also a data member of the Response
 	 */
-	public Object sendAsync(final Message query,
-			final ResponseQueue responseQueue) {
+        @Override
+	public Object sendAsync(final Message query, final ResponseQueue responseQueue) {
 		final Object id;
 		synchronized (this) {
-			id = new Integer(uniqueID++);
+		id = new Integer(uniqueID++);
 		}
 		sendAsync(query, id, responseQueue);
 		return id;
@@ -419,11 +472,13 @@ public class NonblockingResolver implements INonblockingResolver {
 	 * @param responseQueue
 	 *            The queue for the responses
 	 */
+        @Override
 	public void sendAsync(final Message query, Object id,
 			final ResponseQueue responseQueue) {
 		sendAsync(query, id, timeoutValue, useTCP, responseQueue);
 	}
 
+        @Override
 	public void sendAsync(final Message inQuery, Object id, int inQueryTimeout,
 			boolean queryUseTCP, final ResponseQueue responseQueue) {
 		sendAsync(inQuery, id, inQueryTimeout, queryUseTCP, responseQueue,
@@ -477,19 +532,35 @@ public class NonblockingResolver implements INonblockingResolver {
 		// Use SinglePortTransactionController if possible, otherwise get new
 		// Transaction.
                 int qid = query.getHeader().getID();
-		if (useSinglePort && tcp
-				  && transactionController.headerIdNotInUse(qid)) {
+		if (useSingleTCPPort 
+                        && tcp
+			&& transactionController.headerIdNotInUse(qid)) {
                     QueryData qData = new QueryData();
                     qData.setTcp(tcp);
                     qData.setIgnoreTruncation(ignoreTruncation);
                     qData.setTsig(tsig);
                     qData.setQuery(query);
-                    if (!tcp) {
-                        qData.setUdpSize(udpSize);
-                    }
+//                    if (!tcp) {
+//                        qData.setUdpSize(udpSize);
+//                    }
                     if (useResponseQueue) {
-                        transactionController.sendQuery(qData, id, responseQueue,
-                                endTime);
+                        transactionController.sendQuery(qData, id, responseQueue, endTime);
+                    } else {
+                        // Start up the Transaction with a ResolverListener
+                        transactionController.sendQuery(qData, id, listener, endTime);
+                    }
+		} else if(useSingleUDPPort 
+                            && !tcp
+                            && transactionController.headerIdNotInUse(qid)) {
+                    QueryData qData = new QueryData();
+                    qData.setTcp(false);
+                    qData.setIgnoreTruncation(ignoreTruncation);
+                    qData.setTsig(tsig);
+                    qData.setQuery(query);
+                    qData.setUdpSize(udpSize);
+                   
+                    if (useResponseQueue) {
+                        transactionController.sendQuery(qData, id, responseQueue, endTime);
                     } else {
                         // Start up the Transaction with a ResolverListener
                         transactionController.sendQuery(qData, id, listener, endTime);
@@ -545,7 +616,7 @@ public class NonblockingResolver implements INonblockingResolver {
 			return (new Message(b));
 		} catch (IOException e) {
 			if (Options.check("verbose"))
-				e.printStackTrace();
+				e.printStackTrace(System.err);
 			if (!(e instanceof WireParseException))
 				e = new WireParseException("Error parsing message");
 			throw (WireParseException) e;
