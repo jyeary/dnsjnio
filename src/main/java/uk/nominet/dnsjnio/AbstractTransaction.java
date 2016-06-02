@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 import java.net.SocketTimeoutException;
@@ -25,40 +24,45 @@ import org.xbill.DNS.ResolverListener;
  * Abstract superclass for the Transaction and SinglePortTransaction classes
  */
 public abstract class AbstractTransaction implements ConnectionListener, TimerListener {
+
     protected boolean disconnect(Connection connection) {
         if (connection != null) {
-        	// If disconnect returns false, then the connection has already been closed,
-        	// and the user will be sent the data.
-        	// Otherwise, we close.
-        	connection.removeListener(this);
+            // If disconnect returns false, then the connection has already been closed,
+            // and the user will be sent the data.
+            // Otherwise, we close.
+            connection.removeListener(this);
             if (connection.disconnect()) {
-            	connection = null;
-            	return true;
+                connection = null;
+                return true;
             }
         }
         return false;
     }
 
+    @Override
     public int getPort() {
         return 0;
     }
 
-  protected static void sendQuery(Connection connection, Message query) {
+    protected static void sendQuery(Connection connection, Message query) {
         if (connection != null) {
-            byte [] out = query.toWire(Message.MAXLENGTH);
+            byte[] out = query.toWire(Message.MAXLENGTH);
             connection.send(out);
         }
     }
 
     protected abstract boolean disconnect(QueryData qData);
+
     protected abstract void returnException(Exception e, QueryData qData);
 
     /**
-     * Called by the Connection when the original query times out
-     * When timer completes, end the connection and throw an IOException to the caller.
+     * Called by the Connection when the original query times out When timer
+     * completes, end the connection and throw an IOException to the caller.
+     * @param qData The {@link QueryData} to disconnect since it has timed out.
      */
+    @Override
     public void timedOut(QueryData qData) {
-    	// only return an exception if we actually closed the connection
+        // only return an exception if we actually closed the connection
         if (disconnect(qData)) {
             returnException(new SocketTimeoutException("Timed out"), qData);
         }
@@ -70,8 +74,7 @@ public abstract class AbstractTransaction implements ConnectionListener, TimerLi
             response.setId(id);
             response.setMessage(message);
             responseQueue.insert(response);
-        }
-        else {
+        } else {
             // Send the result back to the listener
             // @todo@ Should probably have a pool of these threads.
             ResponderThread responder = new ResponderThread(listener, id, message);
@@ -80,15 +83,14 @@ public abstract class AbstractTransaction implements ConnectionListener, TimerLi
     }
 
     protected void returnException(ResolverListener listener, ResponseQueue responseQueue, Exception e, Object id) {
-    // Stop the timer!
-    Response response = new Response();
+        // Stop the timer!
+        Response response = new Response();
         if (listener == null) {
             response.setException(e);
             response.setId(id);
             response.setException(true);
             responseQueue.insert(response);
-        }
-        else {
+        } else {
             // Send the exception back to the listener
             // @todo@ Should probably have a pool of these threads.
             ResponderThread responder = new ResponderThread(listener, id, e);
@@ -96,6 +98,7 @@ public abstract class AbstractTransaction implements ConnectionListener, TimerLi
         }
     }
 
-
-    public void closed(Connection connection) {}
+    @Override
+    public void closed(Connection connection) {
+    }
 }
