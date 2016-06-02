@@ -53,6 +53,7 @@ import java.util.Map;
 public final class LookupAsynch {
 
     private final static class ProcessingTask implements Runnable {
+        @Override
         public void run() {
             while (true) {
                 LookupAsynch pendingLookup;
@@ -91,6 +92,7 @@ public final class LookupAsynch {
             this.current = current;
         }
 
+        @Override
         public LookupContinuation processResponse(Message query,
                 Response response) {
             LookupContinuation lc = responseProcessor.processResponse(query,

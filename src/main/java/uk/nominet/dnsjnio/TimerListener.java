@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 /**
  * Callback interface for Timer
  */
 public interface TimerListener {
+
     public void timedOut(QueryData qData);
 }

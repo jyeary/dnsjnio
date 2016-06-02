@@ -191,8 +191,10 @@ public class SinglePortTransactionController extends AbstractTransaction {
 
     /**
      * Disconnect.
+     *
      * @param qData
-     * @return {@literal true} if the connection was disconnected, and {@literal false} otherwise.
+     * @return {@literal true} if the connection was disconnected, and
+     * {@literal false} otherwise.
      */
     @Override
     protected boolean disconnect(QueryData qData) {
