@@ -1,4 +1,4 @@
-dnsjnio version 1.0.4
+dnsjnio version 1.0.5
 =====================
 
 Introduction
@@ -86,7 +86,7 @@ Version
 
 This code will run against dnsjava-2.0.0 -> dnsjava-2.0.8 inclusive. It is necessary to download and install the correct version of __dnsjava__ before using this library.
 
-__dnsjnio-1.0.4.jar__ is compiled using JDK 7.
+__dnsjnio-1.0.5.jar__ is compiled using JDK 7.
 
 Demo
 ----
