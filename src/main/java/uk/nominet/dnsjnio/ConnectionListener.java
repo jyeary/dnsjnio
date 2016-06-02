@@ -13,16 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 /**
  * Interface specifying callbacks from Connection.
  */
 public interface ConnectionListener extends java.util.EventListener {
+
     public void readyToSend(Connection connection);
+
     public void closed(Connection connection);
+
     public void dataAvailable(byte[] data, Connection connection);
+
     public int getPort();
 }
- 
