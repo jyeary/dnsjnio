@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
 limitations under the License.
  */
-
 package uk.nominet.dnsjnio;
 
 import java.io.IOException;
@@ -23,14 +22,12 @@ import java.nio.channels.ByteChannel;
 import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
 
-import uk.nominet.dnsjnio.NonblockingResolver;
-
 /**
- * The superclass for the TCP and UDP connections.
- * This class models a socket, and is called by the client, and the
- * DnsController nio control loop.
+ * The superclass for the TCP and UDP connections. This class models a socket,
+ * and is called by the client, and the DnsController nio control loop.
  */
 public abstract class Connection {
+
     protected final static int SINGLE_PORT_BUFFER_SIZE = 64 * 1024;
     protected final static int BUFFER_SIZE = 4 * 1024;
     protected byte[] recvBytes;
@@ -39,7 +36,7 @@ public abstract class Connection {
     protected SelectionKey sk;
     protected LinkedList sendQ = new LinkedList();
 
-    protected ByteBuffer sendBuffer=null;
+    protected ByteBuffer sendBuffer = null;
     protected int recvCount = 0;
     protected boolean writeReady = false;
 
@@ -97,12 +94,13 @@ public abstract class Connection {
     }
 
     public void connect(InetSocketAddress remoteAddress, InetSocketAddress localAddress) {
-        if(getState() == State.CLOSED) {
+        if (getState() == State.CLOSED) {
             setRemoteAddress(remoteAddress);
             setLocalAddress(localAddress);
             setState(State.OPENING);
-            if (! DnsController.isSelectThread()) {
+            if (!DnsController.isSelectThread()) {
                 DnsController.invoke(new Runnable() {
+                    @Override
                     public void run() {
                         connect();
                     }
@@ -114,12 +112,13 @@ public abstract class Connection {
     }
 
     public boolean disconnect() {
-        if (! DnsController.isSelectThread()) {
+        if (!DnsController.isSelectThread()) {
             DnsController.invoke(new Runnable() {
+                @Override
                 public void run() {
                     close();
                 }
-            } );
+            });
         } else {
             return close();
         }
@@ -128,10 +127,12 @@ public abstract class Connection {
 
     /**
      * queue up some bytes to send and try to send it out
+     * @param out The byte array to send.
      */
     public void send(final byte[] out) {
-        if (! DnsController.isSelectThread()) {
+        if (!DnsController.isSelectThread()) {
             DnsController.invoke(new Runnable() {
+                @Override
                 public void run() {
                     send(out);
                 }
@@ -147,27 +148,29 @@ public abstract class Connection {
      */
     public void doWrite() {
         // Deselect OP_WRITE, but don't enable OP_READ until the end of the write
-    	if (sk.isValid()) {
-        sk.interestOps(0);
+        if (sk.isValid()) {
+            sk.interestOps(0);
 //        sk.interestOps(SelectionKey.OP_READ);
-        writeReady = true;				// write is ready
-        if(sendBuffer != null)write(sendBuffer);	// may have a partial write
-        writeQueued();					// write out rest of queue
-    	}
-    	else closeComplete();
+            writeReady = true;				// write is ready
+            if (sendBuffer != null) {
+                write(sendBuffer);	// may have a partial write
+            }
+            writeQueued();					// write out rest of queue
+        } else {
+            closeComplete();
+        }
     }
 
     /**
      * attempt to send all queued data
      */
     protected void writeQueued() {
-        while(writeReady && sendQ.size() > 0)	// now process the queue
+        while (writeReady && sendQ.size() > 0) // now process the queue
         {
-            byte[] msg = (byte[])sendQ.remove(0);
+            byte[] msg = (byte[]) sendQ.remove(0);
             write(msg);	// write the bytes
         }
     }
-
 
     /**
      * send some bytes
@@ -184,7 +187,7 @@ public abstract class Connection {
     }
 
     protected void commonEndWrite(ByteBuffer data) {
-        if(data.hasRemaining()) {
+        if (data.hasRemaining()) {
             writeReady = false;
             sk.interestOps(SelectionKey.OP_WRITE | SelectionKey.OP_READ);
 
@@ -196,9 +199,9 @@ public abstract class Connection {
             writeReady = true;
         }
     }
-    
+
     protected void setLocalAddress(InetSocketAddress newLocalAddr) {
-    	localAddress = newLocalAddr;
+        localAddress = newLocalAddr;
     }
 
     protected void setRemoteAddress(InetSocketAddress newRemoteAddr) {
@@ -209,16 +212,15 @@ public abstract class Connection {
         int n = address.indexOf(':');
         String pt = null;
         String host;
-        int port= NonblockingResolver.DEFAULT_PORT;
-        if(n == 0) {
+        int port = NonblockingResolver.DEFAULT_PORT;
+        if (n == 0) {
             host = "127.0.0.1";
             pt = address.substring(1);
-        }
-        else if(n < 0) {
+        } else if (n < 0) {
             host = address;
         } else {
-            host = address.substring(0,n);
-            pt = address.substring(n+1);
+            host = address.substring(0, n);
+            pt = address.substring(n + 1);
         }
         if (pt != null) {
             try {
@@ -239,8 +241,8 @@ public abstract class Connection {
                 sk.interestOps(0);
                 sk.selector().wakeup();
             }
-        } catch(Exception ce) {
-            ce.printStackTrace();
+        } catch (Exception ce) {
+            ce.printStackTrace(System.err);
         }
         setState(State.CLOSED);
         inBuf = null;
@@ -252,13 +254,12 @@ public abstract class Connection {
         if (recvBytes != null) {
             if (j == recvCount) {
                 recvCount = 0;
-            }
-            else {
+            } else {
                 byte[] temp = new byte[recvCount - j];
                 System.arraycopy(recvBytes, j, temp, 0, recvCount - j);
                 recvCount -= j; // Drop front of buffer
                 System.arraycopy(temp, 0, recvBytes, 0, recvCount);
-                temp=null;
+                temp = null;
             }
         }
     }
@@ -270,40 +271,38 @@ public abstract class Connection {
         // TODO: probably need some type of synchronization on the input
         // buffer because it gets nulled out in closeComplete due to
         // timeout and then can potentially cause a crash here.
-        if(sc.isOpen() && state != State.CLOSED && inputBuffer != null)
-        {
+        if (sc.isOpen() && state != State.CLOSED && inputBuffer != null) {
             try {
                 len = sc.read(inputBuffer);
-            } catch(IOException e) {
-                len=-1;
+            } catch (IOException e) {
+                len = -1;
             }
-            
-            if(len >= 0)
-            {
+
+            if (len >= 0) {
                 addToBuffer(bytes, len);
                 inBuf.clear();
-            }
-            else if(len < 0) {
+            } else if (len < 0) {
                 closeComplete();
             }
         }
     }
 
     /**
-     * This method simply buffers the input.
-     * The send to user will be triggered when the end of input is reached.
+     * This method simply buffers the input. The send to user will be triggered
+     * when the end of input is reached.
+     * @param buf The byte array to add to the buffer.
+     * @param len the length of the buffer to add.
      */
     protected void addToBuffer(byte[] buf, int len) {
-    	byte[] receivedBytes = recvBytes; // save a local reference just in case it gets nulled out.
+        byte[] receivedBytes = recvBytes; // save a local reference just in case it gets nulled out.
 
-    	// TODO: probably need some type of synchronization on the received
-    	// bytes buffer. It gets nulled out in closeComplete due to timeout
-    	// and then can potentially cause a crash here.
-        if(buf != null && state != State.CLOSED && receivedBytes != null)
-        {
+        // TODO: probably need some type of synchronization on the received
+        // bytes buffer. It gets nulled out in closeComplete due to timeout
+        // and then can potentially cause a crash here.
+        if (buf != null && state != State.CLOSED && receivedBytes != null) {
             if (recvCount + len > receivedBytes.length) {
                 // Grow the buffer, we already kept a reference to the old
-            	// buffer so we don't need to make a temporary copy of it.
+                // buffer so we don't need to make a temporary copy of it.
                 recvBytes = null;
                 recvBytes = new byte[recvCount + len];
                 System.arraycopy(receivedBytes, 0, recvBytes, 0, recvCount);
@@ -323,10 +322,15 @@ public abstract class Connection {
     }
 
     protected abstract boolean close();
+
     protected abstract void connect();
+
     protected abstract void write(ByteBuffer buf);
+
     protected abstract void closeChannel() throws IOException;
+
     public abstract void doRead();
+
     public abstract void doConnect();
 
     protected void setState(int newState) {
@@ -340,7 +344,9 @@ public abstract class Connection {
         return state;
     }
 
+    //TODO this should be an enum
     public class State {
+
         public final static int CLOSED = 0;
         public final static int OPENING = 1;
         public final static int OPENED = 2;
