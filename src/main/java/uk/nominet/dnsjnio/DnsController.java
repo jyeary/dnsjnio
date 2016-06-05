@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -22,15 +23,20 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import org.apache.log4j.Logger;
 
 /**
  * This class controls the I/O using the java.nio package. A select thread is
  * created, which runs the select loop forever. A queue of invocations is kept
  * for the thread, and an outgoing queue is also instantiated. One DnsController
  * services all resolvers
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class DnsController {
 
+    private static Logger LOG = Logger.getLogger(DnsController.class);
     private static final DnsController INSTANCE = new DnsController();
     private static final List<Runnable> INVOCATIONS = new LinkedList<>();
     private static Selector selector;
@@ -53,16 +59,18 @@ public class DnsController {
             selector = Selector.open();
         } catch (IOException ie) {
             // log error?
-            System.out.println("Error - can't open selector\r\n" + ie);
+            LOG.error("Error - can't open selector\r\n", ie);
         }
         selectThread = new Thread("DnsSelect") {
             @Override
             public void run() {
                 while (true) {
                     try {
+                        LOG.trace("DNSController: Starting selectLoop");
                         selectLoop();
+                        LOG.trace("DNSController: Finished selectLoop");
                     } catch (Throwable t) {
-                        System.out.println("Caught exception in DnsSelect thread\r\n" + t);
+                        LOG.error("Caught exception in DnsSelect thread\r\n", t);
                     }
                 }
             }
@@ -93,7 +101,7 @@ public class DnsController {
                 // I just don't know whether a separate polling thread (Timer) is the right answer!
                 selector.select();
             } catch (Exception e) {
-                System.out.println("Exception caught in select loop\r\n" + e);
+                LOG.error("Exception caught in select loop\r\n", e);
             }
 
             // process any selected keys
@@ -126,5 +134,13 @@ public class DnsController {
 
     public static boolean isSelectThread() {
         return Thread.currentThread() == selectThread;
+    }
+    
+    public static boolean isSelectThreadRunning() {
+        boolean running = false;
+        if (selectThread != null) {
+            running = selectThread.isAlive();
+        }
+        return running;
     }
 }

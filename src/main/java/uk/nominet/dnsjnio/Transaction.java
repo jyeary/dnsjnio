@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -17,6 +18,7 @@ package uk.nominet.dnsjnio;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import org.apache.log4j.Logger;
 import org.xbill.DNS.Flags;
 import org.xbill.DNS.Message;
 import org.xbill.DNS.ResolverListener;
@@ -30,9 +32,14 @@ import org.xbill.DNS.TSIG;
  * UDP or TCP), and uses that to make the query. It parses the reply and, if the
  * response is truncated over UDP, will trigger a TCP retry with truncation not
  * set.
+ *
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class Transaction extends AbstractTransaction {
 
+    private static final Logger LOG = Logger.getLogger(Transaction.class);
     Connection connection;
     Message query;
     Object id;
@@ -121,8 +128,9 @@ public class Transaction extends AbstractTransaction {
 
     /**
      * Disconnect.
+     *
      * @param ignoreMe
-     * @return 
+     * @return
      */
     @Override
     protected boolean disconnect(QueryData ignoreMe) {
@@ -132,6 +140,7 @@ public class Transaction extends AbstractTransaction {
     /**
      * Called by the Connection to say that we are readyToSend. We can now send
      * the data.
+     *
      * @param ignoreMe
      */
     @Override
@@ -153,6 +162,12 @@ public class Transaction extends AbstractTransaction {
         try {
             disconnect(ignoreMe);
             Message message = NonblockingResolver.parseMessage(data);
+
+            if (message != null && LOG.isTraceEnabled()) {
+                LOG.trace("dataAvailable(" + data.length + " bytes)");
+                LOG.trace(message);
+            }
+
             NonblockingResolver.verifyTSIG(query, message, data, tsig);
             // Now check that we got the whole message, if we're asked to do so
             if (!tcp && !ignoreTruncation
@@ -195,6 +210,7 @@ public class Transaction extends AbstractTransaction {
 
     /**
      * Throw an Exception to the listener
+     *
      * @param e
      * @param ignoreMe
      */

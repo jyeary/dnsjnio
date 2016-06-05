@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -15,13 +16,21 @@ limitations under the License.
  */
 package uk.nominet.dnsjnio;
 
+import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
+import org.apache.log4j.Logger;
 
 /**
  * Single port UDP connection. The connection is set to be non-blocking, and
  * {@code SO_REUSEADDR} is set to reuse the port.
+ * 
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class SinglePortUDPConnection extends UDPConnection {
+
+    private static final Logger LOG = Logger.getLogger(Connection.class);
 
     public SinglePortUDPConnection(ConnectionListener listener, int port) {
         super(listener, SINGLE_PORT_BUFFER_SIZE);
@@ -34,11 +43,18 @@ public class SinglePortUDPConnection extends UDPConnection {
             sch.configureBlocking(false);
             sch.socket().setReuseAddress(true);
             sch.socket().bind(localAddress);
+            InetSocketAddress addr = (InetSocketAddress) sch.getLocalAddress();
+            localPort = addr.getPort();
+
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("UDP connection bound to port " + localPort);
+            }
+
             sk = sch.register(DnsController.getSelector(), 0);
             sch.connect(remoteAddress);
             attach(sk);
         } catch (Exception e) {
-            e.printStackTrace(System.err);
+            LOG.error("Exception while connecting socket on port " + localPort, e);
             close();
         }
     }

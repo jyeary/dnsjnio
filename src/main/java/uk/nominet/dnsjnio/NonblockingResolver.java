@@ -16,7 +16,6 @@ limitations under the License.
  */
 package uk.nominet.dnsjnio;
 
-import org.xbill.DNS.*;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -27,6 +26,8 @@ import java.security.SecureRandom;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Random;
+import org.apache.log4j.Logger;
+import org.xbill.DNS.*;
 
 /**
  * A nonblocking implementation of Resolver. Multiple concurrent sendAsync
@@ -34,9 +35,11 @@ import java.util.Random;
  *
  * @author Alex Dalitz <alex@caerkettontech.com>
  * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class NonblockingResolver implements INonblockingResolver {
 
+    private static final Logger LOG = Logger.getLogger(NonblockingResolver.class);
     /**
      * The default port to send queries to
      */
@@ -390,7 +393,7 @@ public class NonblockingResolver implements INonblockingResolver {
         }
         if (response.isException()) {
             if (response.getException() instanceof SocketTimeoutException) {
-                throw new SocketTimeoutException();
+                throw new SocketTimeoutException(response.getException().getMessage());
             } else if (response.getException() instanceof IOException) {
                 throw (IOException) (response.getException());
             } else {
@@ -480,13 +483,19 @@ public class NonblockingResolver implements INonblockingResolver {
             int inQueryTimeout, boolean queryUseTCP,
             final ResponseQueue responseQueue, boolean useResponseQueue,
             ResolverListener listener) {
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("sendAsync(id=" + id + ")");
+            LOG.trace(inQuery);
+        }
+
         if (!useResponseQueue && (listener == null)) {
             throw new IllegalArgumentException(
                     "No ResolverListener supplied for callback when useResponsequeue = true!");
         }
 
         if (Options.check("verbose")) {
-            System.err.println(MessageFormat.format("Sending to {0}, from {1}", remoteAddress.getAddress(), remoteAddress.getAddress()));
+            LOG.info(MessageFormat.format("Sending to {0}, from {1}", remoteAddress.getAddress(), remoteAddress.getAddress()));
         }
 
         if (inQuery.getHeader().getOpcode() == Opcode.QUERY) {
@@ -626,7 +635,7 @@ public class NonblockingResolver implements INonblockingResolver {
 //		else
 //			response.tsigState = Message.TSIG_FAILED;
         if (Options.check("verbose")) {
-            System.err.println("TSIG verify: " + Rcode.string(error));
+            LOG.info("TSIG verify: " + Rcode.string(error));
         }
     }
 

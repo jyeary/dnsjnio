@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -16,16 +17,24 @@ limitations under the License.
 package uk.nominet.dnsjnio;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
+import org.apache.log4j.Logger;
 import org.xbill.DNS.Message;
 import static uk.nominet.dnsjnio.NonblockingResolver.getNewInetSocketAddressWithRandomPort;
 
 /**
  * This class implements the UDP specific methods for the Connection superclass.
+ *
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class UDPConnection extends Connection {
+
+    private static final Logger LOG = Logger.getLogger(UDPConnection.class);
 
     public UDPConnection(ConnectionListener listener, int udpSize) {
         super(listener, udpSize);
@@ -43,7 +52,13 @@ public class UDPConnection extends Connection {
                 try {
                     sch.socket().bind(localAddress);
                     connectedOk = true;
+                    InetSocketAddress addr = (InetSocketAddress) sch.getLocalAddress();
+                    localPort = addr.getPort();
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("UDP connection bound to port " + localPort);
+                    }
                 } catch (java.net.SocketException e) {
+                    LOG.trace("UDPConnection exception in connect for port" + localPort, e);
                     // Failure may be caused by picking a port number that was
                     // already in use. Pick another random port and try again.
                     // Note that the socket channel is now invalid, we need to
@@ -58,7 +73,7 @@ public class UDPConnection extends Connection {
             sch.connect(remoteAddress);
             attach(sk);
         } catch (Exception e) {
-            e.printStackTrace(System.err);
+            LOG.error("Exception while connecting UDPConnection for port" + localPort, e);
             close();
         }
     }
@@ -139,7 +154,10 @@ public class UDPConnection extends Connection {
         if (sc.isOpen()) {
             if (data.hasRemaining()) {
                 try {
-                    sc.write(data);
+                    int len = sc.write(data);
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("write(" + len + " bytes) to port " + localPort);
+                    }
                 } catch (IOException e) {
                     closeComplete();
                 }
@@ -168,9 +186,13 @@ public class UDPConnection extends Connection {
                         sk.interestOps(0);
                         setState(State.CLOSING);
                         try {
+                            InetSocketAddress addr = (InetSocketAddress) sc.getLocalAddress();
+                            if (addr != null && LOG.isTraceEnabled()) {
+                                LOG.trace("close() Closing Datagram Socket for port " + localPort);
+                            }
                             sc.close();
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            LOG.error("Exception while closing UDPConnection with port " + localPort, e);
                             //     log error
                         }
                     }
@@ -185,6 +207,10 @@ public class UDPConnection extends Connection {
     protected void closeChannel() throws IOException {
         DatagramChannel sc = (DatagramChannel) sk.channel();
         if (sc != null && sc.isOpen()) {
+            InetSocketAddress addr = (InetSocketAddress) sc.getLocalAddress();
+            if (addr != null && LOG.isTraceEnabled()) {
+                LOG.trace("closeChannel() Closing Datagram Socket for port " + localPort);
+            }
             sc.close();
         }
     }

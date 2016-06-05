@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -20,6 +21,7 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.apache.log4j.Logger;
 import org.xbill.DNS.Flags;
 import org.xbill.DNS.Message;
 import org.xbill.DNS.ResolverListener;
@@ -32,9 +34,14 @@ import org.xbill.DNS.ResolverListener;
  * currently in use on this port, then a new standard Transaction object is used
  * on a new port. When a query ends (response or timeout) then the numQueries
  * should be decremented and the Connection closed if numQueries == 0.
+ *
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class SinglePortTransactionController extends AbstractTransaction {
 
+    private static final Logger LOG = Logger.getLogger(SinglePortTransactionController.class);
     // Keep list of outstanding queries (connection, responseQueue, listener, id)
     // When a packet comes in, get the id, and check all outstanding queries for that id.
     private Map<Integer, QueryData> tcpQueryDataMap = new HashMap<>();
@@ -288,6 +295,11 @@ public class SinglePortTransactionController extends AbstractTransaction {
         // Match up the returned qData with the QueryDataList
         try {
             Message message = NonblockingResolver.parseMessage(data);
+
+            if (message != null && LOG.isTraceEnabled()) {
+                LOG.trace("dataAvailable(" + data.length + " bytes) from port " + connection.localPort);
+                LOG.trace(message);
+            }
 
             QueryData qData = null;
 

@@ -1,5 +1,6 @@
 /*
 Copyright 2007 Nominet UK
+Copyright 2016 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -20,12 +21,18 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import org.apache.log4j.Logger;
 
 /**
  * This class implements TCP-specific methods for the Connection superclass.
+ *
+ * @author Alex Dalitz <alex@caerkettontech.com>
+ * @author John Yeary <jyeary@bluelotussoftware.com>
+ * @author Allan O'Driscoll
  */
 public class TCPConnection extends Connection {
 
+    private static final Logger LOG = Logger.getLogger(TCPConnection.class);
     boolean packetInProgress = false;
 
     public TCPConnection(ConnectionListener listener) {
@@ -64,6 +71,7 @@ public class TCPConnection extends Connection {
 //        return true;
     }
 
+    @Override
     protected void connect() {
         try {
             SocketChannel sch = SocketChannel.open();
@@ -81,6 +89,7 @@ public class TCPConnection extends Connection {
     /**
      * process a connect complete selection
      */
+    @Override
     public void doConnect() {
         SocketChannel sc = (SocketChannel) sk.channel();
         try {
@@ -125,7 +134,11 @@ public class TCPConnection extends Connection {
         if (sc.isOpen()) {
             if (data.hasRemaining()) {
                 try {
-                    sc.write(data);
+                    int len = sc.write(data);
+                    if (LOG.isTraceEnabled()) {
+                        LOG.trace("write(" + len + " bytes)");
+                    }
+
                 } catch (IOException e) {
                     e.printStackTrace(System.err);
                     closeComplete();
