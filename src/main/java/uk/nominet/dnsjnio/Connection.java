@@ -20,13 +20,18 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.SelectionKey;
+import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.LinkedList;
+import org.apache.log4j.Logger;
 
 /**
  * The superclass for the TCP and UDP connections. This class models a socket,
- * and is called by the client, and the DnsController nio control loop.
+ * and is called by the client, and the DnsController NIO control loop.
  */
 public abstract class Connection {
+
+    private static final Logger LOG = Logger.getLogger(Connection.class);
 
     protected final static int SINGLE_PORT_BUFFER_SIZE = 64 * 1024;
     protected final static int BUFFER_SIZE = 4 * 1024;
@@ -42,6 +47,7 @@ public abstract class Connection {
 
     protected InetSocketAddress remoteAddress;
     protected InetSocketAddress localAddress;
+    protected int localPort;
     private int state = State.CLOSED;
 
     byte[] bytes;
@@ -127,6 +133,7 @@ public abstract class Connection {
 
     /**
      * queue up some bytes to send and try to send it out
+     *
      * @param out The byte array to send.
      */
     public void send(final byte[] out) {
@@ -151,11 +158,11 @@ public abstract class Connection {
         if (sk.isValid()) {
             sk.interestOps(0);
 //        sk.interestOps(SelectionKey.OP_READ);
-            writeReady = true;				// write is ready
+            writeReady = true;// write is ready
             if (sendBuffer != null) {
-                write(sendBuffer);	// may have a partial write
+                write(sendBuffer);// may have a partial write
             }
-            writeQueued();					// write out rest of queue
+            writeQueued();// write out rest of queue
         } else {
             closeComplete();
         }
@@ -202,6 +209,7 @@ public abstract class Connection {
 
     protected void setLocalAddress(InetSocketAddress newLocalAddr) {
         localAddress = newLocalAddr;
+        localPort = localAddress.getPort();
     }
 
     protected void setRemoteAddress(InetSocketAddress newRemoteAddr) {
@@ -233,6 +241,10 @@ public abstract class Connection {
     }
 
     protected void closeComplete() {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace(MessageFormat.format("Connection.closeComplete() called for port {0}", localPort));
+        }
+
         sk.cancel();
         sk.attach(null);
         try {
@@ -242,7 +254,7 @@ public abstract class Connection {
                 sk.selector().wakeup();
             }
         } catch (Exception ce) {
-            ce.printStackTrace(System.err);
+            LOG.warn("Exception in closeComplete for port " + localPort, ce);
         }
         setState(State.CLOSED);
         inBuf = null;
@@ -275,7 +287,12 @@ public abstract class Connection {
             try {
                 len = sc.read(inputBuffer);
             } catch (IOException e) {
+                LOG.trace("readFromChannel: exception on read on port " + localPort, e);
                 len = -1;
+            }
+
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("readFromChannel(" + len + " bytes) from port " + localPort);
             }
 
             if (len >= 0) {
@@ -284,12 +301,15 @@ public abstract class Connection {
             } else if (len < 0) {
                 closeComplete();
             }
+        } else if (LOG.isTraceEnabled()) {
+            LOG.trace(MessageFormat.format("readFromChannel: Looks like connection is closed for port {0}, sc.isOpen()={1}, state={2}, inputBuffer={3}", localPort, sc.isOpen(), state, inputBuffer));
         }
     }
 
     /**
      * This method simply buffers the input. The send to user will be triggered
      * when the end of input is reached.
+     *
      * @param buf The byte array to add to the buffer.
      * @param len the length of the buffer to add.
      */
@@ -310,6 +330,8 @@ public abstract class Connection {
             }
             System.arraycopy(buf, 0, receivedBytes, recvCount, len);
             recvCount += len;
+        } else if (LOG.isTraceEnabled()) {
+            LOG.trace(MessageFormat.format("addToBuffer: Looks like connection is closed for port {0}, buf={1}, state={2}, receivedBytes={3}", localPort, Arrays.toString(buf), state, Arrays.toString(receivedBytes)));
         }
     }
 
