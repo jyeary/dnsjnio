@@ -15,10 +15,12 @@ limitations under the License.
  */
 package uk.nominet.dnsjnio;
 
+import java.util.EventListener;
+
 /**
  * Interface specifying callbacks from Connection.
  */
-public interface ConnectionListener extends java.util.EventListener {
+public interface ConnectionListener extends EventListener {
 
     public void readyToSend(Connection connection);
 
