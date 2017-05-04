@@ -38,31 +38,31 @@ import org.xbill.DNS.*;
  * @author Allan O'Driscoll
  */
 public class NonblockingResolver implements INonblockingResolver {
-
+    
     private static final Logger LOG = Logger.getLogger(NonblockingResolver.class);
     /**
      * The default port to send queries to
      */
     public static final int DEFAULT_PORT = 53;
-
+    
     private InetSocketAddress remoteAddress = new InetSocketAddress(DEFAULT_PORT);
-
+    
     private boolean useTCP = false, ignoreTruncation;
 
     // private byte EDNSlevel = -1;
     private TSIG tsig;
-
+    
     private int timeoutValue = 10 * 1000;
 
     /**
      * The default EDNS payload size
      */
     public static final int DEFAULT_EDNS_PAYLOADSIZE = 1280;
-
+    
     private static final short DEFAULT_UDPSIZE = 512;
-
+    
     private OPTRecord queryOPT;
-
+    
     private static String defaultResolver = "localhost";
 
     // Use short as id because the id header is limited to 16 bit
@@ -78,6 +78,7 @@ public class NonblockingResolver implements INonblockingResolver {
     private SinglePortTransactionController transactionController;
     private boolean useSingleTCPPort = false;
     private boolean useSingleUDPPort = false;
+    private static boolean useEphemeralPorts = false;
 
     /**
      * Use a random port by default.
@@ -106,7 +107,7 @@ public class NonblockingResolver implements INonblockingResolver {
             }
         }
         InetAddress addr;
-        if (hostname.equals("0")) {
+        if (hostname.equals("0") || hostname.equals(defaultResolver)) {
             addr = InetAddress.getLocalHost();
         } else {
             addr = InetAddress.getByName(hostname);
@@ -127,7 +128,7 @@ public class NonblockingResolver implements INonblockingResolver {
     public NonblockingResolver() throws UnknownHostException {
         this(null);
     }
-
+    
     InetSocketAddress getRemoteAddress() {
         return remoteAddress;
     }
@@ -213,16 +214,16 @@ public class NonblockingResolver implements INonblockingResolver {
     public InetSocketAddress getLocalAddress() {
         return localAddress;
     }
-
+    
     @Override
     public void setTCP(boolean flag) {
         this.useTCP = flag;
     }
-
+    
     public boolean isTCP() {
         return useTCP;
     }
-
+    
     @Override
     public void setIgnoreTruncation(boolean flag) {
         this.ignoreTruncation = flag;
@@ -298,7 +299,7 @@ public class NonblockingResolver implements INonblockingResolver {
         localAddress = new InetSocketAddress(localAddress.getHostName(), port);
         transactionController.setLocalAddress(localAddress);
     }
-
+    
     @Override
     public void setEDNS(int level, int payloadSize, int flags, List options) {
         if (level != 0 && level != -1) {
@@ -310,41 +311,41 @@ public class NonblockingResolver implements INonblockingResolver {
         }
         queryOPT = new OPTRecord(payloadSize, 0, level, flags, options);
     }
-
+    
     @Override
     public void setEDNS(int level) {
         setEDNS(level, 0, 0, null);
     }
-
+    
     private void applyEDNS(Message query) {
         if (queryOPT == null || query.getOPT() != null) {
             return;
         }
         query.addRecord(queryOPT, Section.ADDITIONAL);
     }
-
+    
     @Override
     public void setTSIGKey(TSIG key) {
         tsig = key;
     }
-
+    
     public void setTSIGKey(Name name, byte[] key) {
         tsig = new TSIG(name, key);
     }
-
+    
     public void setTSIGKey(String name, String key) {
         tsig = new TSIG(name, key);
     }
-
+    
     protected TSIG getTSIGKey() {
         return tsig;
     }
-
+    
     @Override
     public void setTimeout(int secs) {
         setTimeout(secs, 0);
     }
-
+    
     @Override
     public void setTimeout(int secs, int millisecs) {
         timeoutValue = (secs * 1000) + millisecs;
@@ -359,7 +360,7 @@ public class NonblockingResolver implements INonblockingResolver {
     public int getTimeoutMillis() {
         return timeoutValue;
     }
-
+    
     private int maxUDPSize(Message query) {
         OPTRecord opt = query.getOPT();
         if (opt == null) {
@@ -383,7 +384,7 @@ public class NonblockingResolver implements INonblockingResolver {
      */
     @Override
     public Message send(Message query) throws IOException {
-
+        
         ResponseQueue queue = new ResponseQueue();
         Object id = sendAsync(query, queue);
         Response response = queue.getItem();
@@ -471,33 +472,33 @@ public class NonblockingResolver implements INonblockingResolver {
             final ResponseQueue responseQueue) {
         sendAsync(query, id, timeoutValue, useTCP, responseQueue);
     }
-
+    
     @Override
     public void sendAsync(final Message inQuery, Object id, int inQueryTimeout,
             boolean queryUseTCP, final ResponseQueue responseQueue) {
         sendAsync(inQuery, id, inQueryTimeout, queryUseTCP, responseQueue,
                 true, null);
     }
-
+    
     private void sendAsync(final Message inQuery, Object id,
             int inQueryTimeout, boolean queryUseTCP,
             final ResponseQueue responseQueue, boolean useResponseQueue,
             ResolverListener listener) {
-
+        
         if (LOG.isTraceEnabled()) {
             LOG.trace("sendAsync(id=" + id + ")");
             LOG.trace(inQuery);
         }
-
+        
         if (!useResponseQueue && (listener == null)) {
             throw new IllegalArgumentException(
                     "No ResolverListener supplied for callback when useResponsequeue = true!");
         }
-
+        
         if (Options.check("verbose")) {
             LOG.info(MessageFormat.format("Sending to {0}, from {1}", remoteAddress.getAddress(), remoteAddress.getAddress()));
         }
-
+        
         if (inQuery.getHeader().getOpcode() == Opcode.QUERY) {
             Record question = inQuery.getQuestion();
             if (question != null && question.getType() == Type.AXFR) {
@@ -505,32 +506,32 @@ public class NonblockingResolver implements INonblockingResolver {
                         "AXFR not implemented in NonblockingResolver");
             }
         }
-
+        
         int queryTimeout = inQueryTimeout;
         Message query = (Message) inQuery.clone();
         applyEDNS(query);
         if (tsig != null) {
             tsig.apply(query, null);
         }
-
+        
         byte[] out = query.toWire(Message.MAXLENGTH);
         int udpSize = maxUDPSize(query);
         boolean tcp = false;
         long endTime = System.currentTimeMillis() + queryTimeout;
-
+        
         if (queryUseTCP || out.length > udpSize) {
             tcp = true;
         }
 
-        // Send the query to the nioEngine.
-        // If !useResponseQueue, then the Transaction should fire up a new
-        // thread, and use it to
-        // call the client back.
-        // If useResponseQueue, then the Transaction should use the standard
-        // behaviour of inserting
-        // the response in to the client-supplied ResponseQueue.
-        // Use SinglePortTransactionController if possible, otherwise get new
-        // Transaction.
+        /* 
+         * Send the query to the nioEngine.
+         * If !useResponseQueue, then the Transaction should fire up a new
+         * thread, and use it to call the client back.
+         * If useResponseQueue, then the Transaction should use the standard
+         * behaviour of inserting the response in to the client-supplied ResponseQueue.
+         * Use SinglePortTransactionController if possible, otherwise get new
+         * Transaction.
+         */
         int qid = query.getHeader().getID();
         if (useSingleTCPPort
                 && tcp
@@ -540,9 +541,6 @@ public class NonblockingResolver implements INonblockingResolver {
             qData.setIgnoreTruncation(ignoreTruncation);
             qData.setTsig(tsig);
             qData.setQuery(query);
-//                    if (!tcp) {
-//                        qData.setUdpSize(udpSize);
-//                    }
             if (useResponseQueue) {
                 transactionController.sendQuery(qData, id, responseQueue, endTime);
             } else {
@@ -558,7 +556,7 @@ public class NonblockingResolver implements INonblockingResolver {
             qData.setTsig(tsig);
             qData.setQuery(query);
             qData.setUdpSize(udpSize);
-
+            
             if (useResponseQueue) {
                 transactionController.sendQuery(qData, id, responseQueue, endTime);
             } else {
@@ -566,9 +564,13 @@ public class NonblockingResolver implements INonblockingResolver {
                 transactionController.sendQuery(qData, id, listener, endTime);
             }
         } else {
-            // Pick a random port here - don't leave it to the OS!
+            /* The original comment was "Pick a random port here - don't leave it to the OS!"
+             * However, the OS knows which ports may be open instead of guessing, and letting the socket
+             * throw an exception, and repeating the process. If the ephemeral port use is enabled, we will 
+             * let the OS figure out which port is available for us.
+             */
             InetSocketAddress localAddr = getNewInetSocketAddressWithRandomPort(localAddress.getAddress());
-
+            
             Transaction transaction = new Transaction(remoteAddress, localAddr,
                     tsig, tcp, ignoreTruncation);
             if (!tcp) {
@@ -583,10 +585,30 @@ public class NonblockingResolver implements INonblockingResolver {
         }
     }
 
-    public static InetSocketAddress getNewInetSocketAddressWithRandomPort(InetAddress addr) {
-        int portNum = 1024 + random.nextInt(65535 - 1024);
-        InetSocketAddress localAddr = new InetSocketAddress(addr, portNum);
-        return localAddr;
+    /**
+     * This method will attempt to provide a random socket on the local machine
+     * above port 1024 by default. If the
+     * {@link NonblockingResolver#setUseEphemeralPorts(boolean)} is set to
+     * {@literal true}, then we will let the operating system pick an available
+     * port to use which may between 1-65535.
+     *
+     * @param address The address to configure the random port on.
+     * @return A socket address between 1025-65535 when
+     * {@link NonblockingResolver#setUseEphemeralPorts(boolean)} is disabled, or
+     * a port in the operating system ephemeral port range when enabled.
+     * @see NonblockingResolver#setUseEphemeralPorts(boolean)
+     */
+    public static InetSocketAddress getNewInetSocketAddressWithRandomPort(InetAddress address) {
+        InetSocketAddress localAddress;
+        if (useEphemeralPorts) {
+            localAddress = new InetSocketAddress(address, 0);
+            LOG.debug(MessageFormat.format("Ephemeral port {0} selected.", localAddress.getPort()));
+        } else {
+            int portNumber = 1024 + random.nextInt(65535 - 1024);
+            localAddress = new InetSocketAddress(address, portNumber);
+            LOG.debug(MessageFormat.format("Random port {0} selected.", localAddress.getPort()));
+        }
+        return localAddress;
     }
 
     // private Message
@@ -623,7 +645,7 @@ public class NonblockingResolver implements INonblockingResolver {
             throw (WireParseException) e;
         }
     }
-
+    
     public static void verifyTSIG(Message query, Message response, byte[] b,
             TSIG tsig) {
         if (tsig == null) {
@@ -665,4 +687,42 @@ public class NonblockingResolver implements INonblockingResolver {
             return false;
         }
     }
+
+    /**
+     * Indicates if ephemeral ports are enabled.The default is {@literal false}.
+     *
+     * @return {@literal true} if enabled, and {@literal false} otherwise.
+     * @see NonblockingResolver#setUseEphemeralPorts(boolean)
+     * @since 1.6
+     */
+    public static boolean isUseEphemeralPorts() {
+        return useEphemeralPorts;
+    }
+
+    /**
+     * <p>
+     * Sets the application to use ephemeral ports picked at random by the
+     * operating system. The default is {@literal false}.
+     * </p>
+     * <p>
+     * <strong>Note:</strong> The default is to use ports from 1025-65535 picked
+     * at random by the application. This causes issues as the number of ports
+     * consumed increases because it causes {@link SocketException} to be
+     * generated on binding the port. This is handled internally, but causes
+     * significant overhead. Using ephemeral ports allows the operating system
+     * to pick the port from the pool of configured ephemeral ports on the
+     * system. The number of ports available is less than 64511 used by the
+     * application by default. The number of ports available varies by operating
+     * system. Please see
+     * <a href="https://www.cymru.com/jtk/misc/ephemeralports.html">Ephemeral
+     * Source Port Selection Strategies</a> for the default number of ports by
+     * operating system.
+     *
+     * @param useEphemeralPorts The boolean value to set.
+     * @since 1.6
+     */
+    public static void setUseEphemeralPorts(final boolean useEphemeralPorts) {
+        NonblockingResolver.useEphemeralPorts = useEphemeralPorts;
+    }
+    
 }
