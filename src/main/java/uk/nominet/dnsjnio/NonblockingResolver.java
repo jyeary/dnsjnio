@@ -1,6 +1,6 @@
 /*
 Copyright 2007 Nominet UK
-Copyright 2016 Blue Lotus Software, LLC.
+Copyright 2016-2017 Blue Lotus Software, LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License. 
@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;

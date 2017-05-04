@@ -471,7 +471,7 @@ public class ExtendedNonblockingResolver implements Resolver {
 
     /**
      * Returns all resolvers used by this ExtendedResolver
-     * @return 
+     * @return An array of configured resolvers.
      */
     public NonblockingResolver[] getResolvers() {
         return (NonblockingResolver[]) resolvers.toArray(new NonblockingResolver[resolvers.size()]);

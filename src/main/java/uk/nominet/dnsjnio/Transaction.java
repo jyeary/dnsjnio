@@ -129,11 +129,11 @@ public class Transaction extends AbstractTransaction {
     /**
      * Disconnect.
      *
-     * @param ignoreMe
-     * @return
+     * @param ignored Method signature required by {@link AbstractTransaction}, but not used.
+     * @return {@literal true} if successfully disconnected, and {@literal false} otherwise.
      */
     @Override
-    protected boolean disconnect(QueryData ignoreMe) {
+    protected boolean disconnect(QueryData ignored) {
         return disconnect(connection);
     }
 
