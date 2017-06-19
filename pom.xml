@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>uk.nominet</groupId>
     <artifactId>dnsjnio</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6</version>
     <packaging>jar</packaging>
     <name>DNSJava Extension to Support NIO</name>
     <inceptionYear>2007</inceptionYear>
